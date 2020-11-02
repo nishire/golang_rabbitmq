@@ -114,7 +114,7 @@ func TestConsumeMessage(t *testing.T) {
 					dbConn.Table("other_conditions")
 					result := dbConn.Create(&temp)
 					if result.Error != nil {
-						log.Error("Insert Rate Data Failed: ", result.Error)
+						t.Error("Insert Rate Data Failed: ", result.Error)
 					}
 				}
 
@@ -127,7 +127,7 @@ func TestConsumeMessage(t *testing.T) {
 					dbConn.Table("cancellation_policy")
 					result := dbConn.Create(&temp)
 					if result.Error != nil {
-						log.Error("Insert Rate Data Failed: ", result.Error)
+						t.Error("Insert Rate Data Failed: ", result.Error)
 					}
 				}
 
