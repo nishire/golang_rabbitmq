@@ -12,8 +12,8 @@ import (
 func ConsumeMessage() {
 	var offerData model.Master
 	var hotelData model.Hotel
-	// var ratePlanData model.RatePlan
-	// var roomData model.Room
+	var ratePlanData model.RatePlan
+	var roomData model.Room
 
 	connection, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
 	if err != nil {
@@ -36,6 +36,10 @@ func ConsumeMessage() {
 	}
 
 	forever := make(chan bool)
+
+	// connecting to sql database
+	dbConn := ConnectToDB()
+
 	go func() {
 		for message := range messages {
 			unmarshalError := json.Unmarshal(message.Body, &offerData)
@@ -45,26 +49,16 @@ func ConsumeMessage() {
 			for index, _ := range offerData.Offers {
 				fmt.Println("Message: ", offerData.Offers[index].Hotel)
 
+				// extracting required data from json
 				hotelData = offerData.Offers[index].Hotel
-				connnn := DbConn()
-				fmt.Println("::::::::::::::::::::::::::::", connnn)
-				_, err := connnn.Prepare("INSERT INTO rate_plan(hotel_id, rate_plan_id) VALUES(123,123)")
-				if err != nil {
-					panic(err.Error())
-				}
-				// ConnectToDB()
-				// result := Db.Create(&hotelData)
-				// DB, err := gorm.Open("mysql", DbURL(BuildDBConfig()))
-				// if err != nil {
-				// 	fmt.Println("Status:", err)
-				// }
-				// defer DB.Close()
-				// DB.AutoMigrate(&model.Hotel{})
+				ratePlanData = offerData.Offers[index].RatePlan
+				roomData = offerData.Offers[index].Room
 
-				// createError := CreateHotel(&hotelData)
-				// if err != nil {
-				// 	log.Fatal("Create Hotel Failed: ", createError)
-				// }
+				// inserting data into respective tables in the form of rows
+				InsertHotelRow(dbConn, hotelData)
+				InsertRatePlanRow(dbConn, ratePlanData)
+				InsertRoomRow(dbConn, roomData)
+
 			}
 		}
 	}()

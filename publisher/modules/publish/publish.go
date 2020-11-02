@@ -6,6 +6,8 @@ import (
 )
 
 func PublishMessage(byteData []byte) {
+	log.Info("Connecting To RabbitMQ Instance...")
+
 	connection, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
 	if err != nil {
 		log.Fatal("Connection To RabbitMQ Failed: ", err)

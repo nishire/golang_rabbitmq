@@ -10,7 +10,7 @@ import (
 func main() {
 	log.Info("Reading the json file...")
 	var filename string
-	filename = `offer.json`
+	filename = `C:/Users/nishanth/Desktop/Golang_Learning/golang_rabbitmq/publisher/offer.json`
 
 	byteData, err := ioutil.ReadFile(filename)
 	if err != nil {

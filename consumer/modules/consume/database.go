@@ -1,84 +1,116 @@
 package consume
 
 import (
-	"database/sql"
-	"fmt"
-
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/nishire/golang_rabbitmq/consumer/model"
+	log "github.com/sirupsen/logrus"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
-func DbConn() (db *sql.DB) {
-	// dbDriver := "mysql"
-	// dbUser := "root"
-	// dbPass := "root"
-	// dbName := "todo"
-	// db, err := sql.Open(dbDriver, dbUser+":"+dbPass+"@/"+dbName)
-	fmt.Println(">>>>>>>>>>>>>>>>>>>>>")
-	db, err := sql.Open("mysql", "root:root@tcp(127.0.0.1:3306)/todo")
-	if err != nil {
-		panic(err.Error())
+func ConnectToDB() *gorm.DB {
+	dsn := "root:@tcp(127.0.0.1:3306)/assignment?charset=utf8mb4&parseTime=True&loc=Local"
+	db, connectErr := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	if connectErr != nil {
+		log.Fatal("Connection To SQL Failed: ", connectErr)
 	}
 	return db
 }
 
-// import (
-// 	"fmt"
+func InsertHotelRow(dbConn *gorm.DB, objectData model.Hotel) {
 
-// 	"gorm.io/driver/mysql"
-// 	"gorm.io/gorm"
-// )
+	amenities := objectData.Amenities
+	for _, amen := range amenities {
+		var temp model.Amenity
+		temp.HotelId = objectData.HotelId
+		temp.Amenity = amen
 
-// func ConnectToDB() {
-// 	dsn := "root:pass@tcp(127.0.0.1:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Local"
-// 	Db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
-// 	fmt.Println("::::::::::::::::::::::::::", Db)
-// }
+		dbConn.Table("amenities")
+		result := dbConn.Create(&temp)
+		if result.Error != nil {
+			log.Error("Insert Hotel Data Failed: ", result.Error)
+		}
+	}
 
-// package consume
+	var hotelData model.HotelTable
+	hotelData.HotelId = objectData.HotelId
+	hotelData.Name = objectData.Name
+	hotelData.Country = objectData.Country
+	hotelData.Address = objectData.Address
+	hotelData.Latitude = objectData.Latitude
+	hotelData.Longitude = objectData.Longitude
+	hotelData.Telephone = objectData.Telephone
+	hotelData.Description = objectData.Description
+	hotelData.RoomCount = objectData.RoomCount
+	hotelData.Currency = objectData.Currency
 
-// import (
-// 	"fmt"
+	dbConn.Table("hotel")
+	result := dbConn.Create(&hotelData)
+	if result.Error != nil {
+		log.Error("Insert Hotel Data Failed: ", result.Error)
+	}
+}
 
-// 	"github.com/jinzhu/gorm"
-// 	"github.com/nishire/golang_rabbitmq/consumer/model"
-// )
+func InsertRoomRow(dbConn *gorm.DB, objectData model.Room) {
+	var temp model.CapacityTable
+	temp.HotelId = objectData.HotelId
+	temp.MaxAdults = objectData.Capacity.MaxAdults
+	temp.ExtraChildren = objectData.Capacity.ExtraChildren
 
-// var DB *gorm.DB
+	dbConn.Table("capacity")
+	result := dbConn.Create(&temp)
+	if result.Error != nil {
+		log.Error("Insert Capacity Data Failed: ", result.Error)
+	}
 
-// // DBConfig represents db configuration
-// type DBConfig struct {
-// 	Host     string
-// 	Port     int
-// 	User     string
-// 	DBName   string
-// 	Password string
-// }
+	var roomData model.RoomTable
+	roomData.HotelId = objectData.HotelId
+	roomData.RoomId = objectData.RoomId
+	roomData.Name = objectData.Name
+	roomData.Description = objectData.Description
 
-// func BuildDBConfig() *DBConfig {
-// 	dbConfig := DBConfig{
-// 		Host:     "localhost",
-// 		Port:     3306,
-// 		User:     "root",
-// 		Password: "1234",
-// 		DBName:   "first_go",
-// 	}
-// 	return &dbConfig
-// }
+	dbConn.Table("room")
+	result = dbConn.Create(&roomData)
+	if result.Error != nil {
+		log.Error("Insert Room Data Failed: ", result.Error)
+	}
+}
 
-// func DbURL(dbConfig *DBConfig) string {
-// 	return fmt.Sprintf(
-// 		"%s:%s@tcp(%s:%d)/%s?charset=utf8&parseTime=True&loc=Local",
-// 		dbConfig.User,
-// 		dbConfig.Password,
-// 		dbConfig.Host,
-// 		dbConfig.Port,
-// 		dbConfig.DBName,
-// 	)
-// }
+func InsertRatePlanRow(dbConn *gorm.DB, objectData model.RatePlan) {
+	otherConditions := objectData.OtherConditions
+	for _, cond := range otherConditions {
+		var temp model.OtherConditions
+		temp.HotelId = objectData.HotelId
+		temp.Condition = cond
 
-// func CreateHotel(hotel *model.Hotel) error {
-// 	if createError := DB.Create(hotel).Error; createError != nil {
-// 		return createError
-// 	}
-// 	return nil
-// }
+		dbConn.Table("other_conditions")
+		result := dbConn.Create(&temp)
+		if result.Error != nil {
+			log.Error("Insert Rate Data Failed: ", result.Error)
+		}
+	}
+
+	for _, cancel := range objectData.CancellationPolicy {
+		var temp model.CancellationPolicyTable
+		temp.HotelId = objectData.HotelId
+		temp.Type = cancel.Type
+		temp.ExpiresDaysBefore = cancel.ExpiresDaysBefore
+
+		dbConn.Table("cancellation_policy")
+		result := dbConn.Create(&temp)
+		if result.Error != nil {
+			log.Error("Insert Rate Data Failed: ", result.Error)
+		}
+	}
+
+	var roomPlanData model.RatePlanTable
+	roomPlanData.HotelId = objectData.HotelId
+	roomPlanData.RatePlanId = objectData.RatePlanId
+	roomPlanData.Name = objectData.Name
+	roomPlanData.MealPlan = objectData.MealPlan
+
+	dbConn.Table("rate_plan")
+	result := dbConn.Create(&roomPlanData)
+	if result.Error != nil {
+		log.Error("Insert Rate Plan Data Failed: ", result.Error)
+	}
+}
